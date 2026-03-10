@@ -27,6 +27,14 @@ type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
 type PlaybookRow = Database["public"]["Tables"]["playbooks"]["Row"];
 
+function reportQueryError(scope: string, error: { message?: string; code?: string } | null) {
+  if (!error) {
+    return;
+  }
+
+  console.error(`[supabase:${scope}]`, error.code ?? "unknown", error.message ?? "Unknown error");
+}
+
 function toArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
@@ -169,10 +177,8 @@ export async function getProducts() {
     supabase.from("products").select("*").order("created_at", { ascending: false }),
     supabase.from("audiences").select("*")
   ]);
-
-  if (productError || audienceError) {
-    throw new Error(productError?.message ?? audienceError?.message ?? "Failed to load products.");
-  }
+  reportQueryError("products", productError);
+  reportQueryError("audiences", audienceError);
 
   const audiences = ((audienceRows ?? []) as AudienceRow[]).map(mapAudience);
 
@@ -235,17 +241,11 @@ export async function getProductWorkspaceBySlug(slug: string) {
     supabase.from("campaigns").select("*").eq("product_id", product.id),
     supabase.from("playbooks").select("*").eq("product_id", product.id)
   ]);
-
-  if (audienceError || offerError || leadError || campaignError || playbookError) {
-    throw new Error(
-      audienceError?.message ??
-        offerError?.message ??
-        leadError?.message ??
-        campaignError?.message ??
-        playbookError?.message ??
-        "Failed to load product workspace."
-    );
-  }
+  reportQueryError("product-workspace:audiences", audienceError);
+  reportQueryError("product-workspace:offers", offerError);
+  reportQueryError("product-workspace:leads", leadError);
+  reportQueryError("product-workspace:campaigns", campaignError);
+  reportQueryError("product-workspace:playbooks", playbookError);
 
   return {
     product,
@@ -284,16 +284,10 @@ export async function getLeadWorkspace() {
     supabase.from("organizations").select("*"),
     supabase.from("contacts").select("*")
   ]);
-
-  if (leadError || productError || organizationError || contactError) {
-    throw new Error(
-      leadError?.message ??
-        productError?.message ??
-        organizationError?.message ??
-        contactError?.message ??
-        "Failed to load leads."
-    );
-  }
+  reportQueryError("leads", leadError);
+  reportQueryError("lead-workspace:products", productError);
+  reportQueryError("organizations", organizationError);
+  reportQueryError("contacts", contactError);
 
   return {
     leads: ((leadRows ?? []) as LeadRow[]).map(mapLead),
@@ -327,16 +321,10 @@ export async function getCampaignWorkspace() {
     supabase.from("audiences").select("*"),
     supabase.from("offers").select("*")
   ]);
-
-  if (campaignError || productError || audienceError || offerError) {
-    throw new Error(
-      campaignError?.message ??
-        productError?.message ??
-        audienceError?.message ??
-        offerError?.message ??
-        "Failed to load campaigns."
-    );
-  }
+  reportQueryError("campaigns", campaignError);
+  reportQueryError("campaign-workspace:products", productError);
+  reportQueryError("campaign-workspace:audiences", audienceError);
+  reportQueryError("campaign-workspace:offers", offerError);
 
   return {
     campaigns: ((campaignRows ?? []) as CampaignRow[]).map(mapCampaign),
