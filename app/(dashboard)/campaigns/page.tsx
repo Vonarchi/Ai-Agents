@@ -1,4 +1,6 @@
 import { createCampaignAction, deleteCampaignAction, updateCampaignAction } from "@/app/actions/campaigns";
+import Link from "next/link";
+
 import { PageShell } from "@/components/dashboard/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -8,6 +10,9 @@ import { formatPct } from "@/lib/utils";
 export default async function CampaignsPage() {
   const { audiences, campaigns, offers, products } = await getCampaignWorkspace();
   const topCvr = campaigns.length > 0 ? Math.max(...campaigns.map((item) => item.conversionRate)) : 0;
+  const hasProducts = products.length > 0;
+  const hasAudiences = audiences.length > 0;
+  const hasOffers = offers.length > 0;
 
   return (
     <PageShell
@@ -26,8 +31,28 @@ export default async function CampaignsPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ember">Create Campaign</p>
           <h3 className="mt-2 font-display text-2xl text-ink">Add a live campaign record</h3>
         </div>
+        {!hasProducts ? (
+          <div className="rounded-[22px] border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+            No products exist in Supabase yet. Create a product first in{" "}
+            <Link href="/products" className="font-semibold underline">
+              Products
+            </Link>
+            .
+          </div>
+        ) : null}
+        {hasProducts && (!hasAudiences || !hasOffers) ? (
+          <div className="rounded-[22px] border border-ink/10 bg-cream px-4 py-4 text-sm text-slate">
+            {hasAudiences ? "Audiences loaded." : "No audiences yet. Campaigns can still be created without one."}{" "}
+            {hasOffers ? "Offers loaded." : "No offers yet. Campaigns can still be created without one."}
+          </div>
+        ) : null}
         <form action={createCampaignAction} className="grid gap-3 md:grid-cols-4">
-          <select name="productId" className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-slate">
+          <select
+            name="productId"
+            disabled={!hasProducts}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-slate disabled:cursor-not-allowed disabled:bg-stone-100"
+          >
+            {!hasProducts ? <option value="">No products available</option> : null}
             {products.map((product) => (
               <option key={product.id} value={product.id}>
                 {product.name}
@@ -38,16 +63,24 @@ export default async function CampaignsPage() {
           <Input name="campaignType" placeholder="Outbound" />
           <Input name="objective" placeholder="Book demos" />
           <Input name="channel" placeholder="Email" />
-          <select name="audienceId" className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-slate">
-            <option value="">No audience</option>
+          <select
+            name="audienceId"
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-slate"
+            defaultValue=""
+          >
+            <option value="">{hasAudiences ? "No audience" : "No audiences available"}</option>
             {audiences.map((audience) => (
               <option key={audience.id} value={audience.id}>
                 {audience.name}
               </option>
             ))}
           </select>
-          <select name="offerId" className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-slate">
-            <option value="">No offer</option>
+          <select
+            name="offerId"
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-slate"
+            defaultValue=""
+          >
+            <option value="">{hasOffers ? "No offer" : "No offers available"}</option>
             {offers.map((offer) => (
               <option key={offer.id} value={offer.id}>
                 {offer.name}
@@ -56,7 +89,11 @@ export default async function CampaignsPage() {
           </select>
           <Input name="status" placeholder="draft" />
           <Input name="conversionRate" placeholder="0" />
-          <button type="submit" className="rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-cream">
+          <button
+            type="submit"
+            disabled={!hasProducts}
+            className="rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-cream disabled:cursor-not-allowed disabled:bg-ink/40"
+          >
             Create Campaign
           </button>
         </form>
